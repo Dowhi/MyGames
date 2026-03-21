@@ -108,7 +108,7 @@ export class MahjongGame {
     let attempts = 0;
     while (allSlots.length < TOTAL_TILES_TARGET && attempts < 2000) {
       attempts++;
-      const l = Math.floor(Math.random() * 3) + 1; // layers 1, 2, 3
+      const l = Math.floor(Math.random() * 4) + 1; // layers 1, 2, 3, 4
       const offset = l % 2; 
       // Higher layers should be slightly more centered (shorter range)
       const r = (Math.floor(Math.random() * (ROWS_PER_LAYER - l)) + Math.floor(l/2)) * 2 + offset;
@@ -181,13 +181,28 @@ export class MahjongGame {
       this.tiles.push({ id: id++, symbol, ...s2, faceDown: false, el: null });
     }
 
-    // Phase 3: Select exactly 10 tiles from layers 2, 3, 4 to be faceDown
-    const candidates = this.tiles.filter(t => t.layer >= 2);
-    // If we don't have enough in 2+, take from 1+
-    const fallback = candidates.length < 10 ? this.tiles.filter(t => t.layer >= 1) : candidates;
-    const shuffled = shuffle([...fallback]);
-    for (let i = 0; i < Math.min(10, shuffled.length); i++) {
-        shuffled[i].faceDown = true;
+    // Phase 3: Select exactly 10 tiles distributed among layers 2, 3, 4
+    const l2 = shuffle(this.tiles.filter(t => t.layer === 2));
+    const l3 = shuffle(this.tiles.filter(t => t.layer === 3));
+    const l4 = shuffle(this.tiles.filter(t => t.layer === 4));
+    
+    let count = 0;
+    const pickFrom = (list, num) => {
+      for (let i = 0; i < num && list.length > 0 && count < 10; i++) {
+        list.pop().faceDown = true;
+        count++;
+      }
+    };
+    
+    // Distribution attempt: spread across 2, 3, 4
+    pickFrom(l4, 3);
+    pickFrom(l3, 3);
+    pickFrom(l2, 3);
+    
+    // Fill remaining if needed to reach exactly 10
+    if (count < 10) {
+      const remainingUpper = shuffle([...l2, ...l3, ...l4].filter(t => !t.faceDown));
+      pickFrom(remainingUpper, 10 - count);
     }
   }
 
