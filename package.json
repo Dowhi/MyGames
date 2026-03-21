@@ -1,0 +1,12 @@
+{
+  "name": "mygames",
+  "version": "1.0.0",
+  "description": "MyGames — Premium PWA game collection",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve . --listen 3000 --no-clipboard",
+    "start": "npx serve . --listen 3000"
+  },
+  "keywords": ["games", "pwa", "puzzle"],
+  "license": "MIT"
+}

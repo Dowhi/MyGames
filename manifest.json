@@ -1,0 +1,27 @@
+{
+  "name": "MyGames",
+  "short_name": "MyGames",
+  "description": "Colección premium de juegos de puzzle: MyGames Classic, Mahjong Solitaire y Onet Fauna Connect.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0120",
+  "theme_color": "#1a0533",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "lang": "es",
+  "screenshots": []
+}
