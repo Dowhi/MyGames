@@ -181,10 +181,10 @@ export class MahjongGame {
       this.tiles.push({ id: id++, symbol, ...s2, faceDown: false, el: null });
     }
 
-    // Phase 3: Select exactly 10 tiles distributed among layers 2, 3, 4
-    const l2 = shuffle(this.tiles.filter(t => t.layer === 2));
-    const l3 = shuffle(this.tiles.filter(t => t.layer === 3));
-    const l4 = shuffle(this.tiles.filter(t => t.layer === 4));
+    // Phase 3: Select exactly 10 tiles distributed among layers 2, 3, 4 (internal 1, 2, 3)
+    const l2 = shuffle(this.tiles.filter(t => t.layer === 1));
+    const l3 = shuffle(this.tiles.filter(t => t.layer === 2));
+    const l4 = shuffle(this.tiles.filter(t => t.layer === 3));
     
     let count = 0;
     const pickFrom = (list, num) => {
@@ -194,7 +194,7 @@ export class MahjongGame {
       }
     };
     
-    // Distribution attempt: spread across 2, 3, 4
+    // Distribution attempt: spread across internal layers 1, 2, 3
     pickFrom(l4, 3);
     pickFrom(l3, 3);
     pickFrom(l2, 3);
