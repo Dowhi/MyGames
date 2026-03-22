@@ -109,20 +109,20 @@
           </div>
         </button>
 
-        <!-- Onet Connect -->
-        <button class="game-card" id="card-onet" aria-label="Jugar Onet Connect Fauna">
+        <!-- Block Deluxe (Replaced Onet) -->
+        <button class="game-card" id="card-onet" aria-label="Jugar Block Deluxe Tetris Zen">
           <div class="card-glow glow-orange"></div>
           <div class="card-content">
-            <div class="card-emoji">🦋</div>
+            <div class="card-emoji">💎</div>
             <div class="card-info">
-              <h3 class="card-title">Onet</h3>
-              <p class="card-subtitle">Fauna Connect</p>
+              <h3 class="card-title">Block Deluxe</h3>
+              <p class="card-subtitle">Tetris Zen</p>
             </div>
             <div class="card-badge" id="badge-onet">▶</div>
           </div>
           <div class="card-meta">
             <span class="card-best" id="best-onet">⭐ 0</span>
-            <span class="card-tag">BFS Paths</span>
+            <span class="card-tag">Puzzle Espacial</span>
           </div>
         </button>
       </div>
@@ -198,15 +198,15 @@
     </div>
 
     <div class="mj-game-body">
+      <div id="mj-board" class="mj-board" role="grid" aria-label="Tablero Mahjong"></div>
       <div class="mj-tray-wrap">
         <div id="mj-tray" class="mj-tray" role="list" aria-label="Bandeja de fichas"></div>
       </div>
-      <div id="mj-board" class="mj-board" role="grid" aria-label="Tablero Mahjong"></div>
     </div>
   </div>
 
-  <!-- ═══════════════════════ ONET SCREEN ═══════════════════════ -->
-  <div id="onet-screen" class="screen" role="main" aria-label="Juego Onet Fauna Connect">
+  <!-- ═══════════════════════ BLOCK DELUXE SCREEN ═══════════════════════ -->
+  <div id="onet-screen" class="screen" role="main" aria-label="Juego Block Deluxe">
     <div class="game-topbar">
       <button class="icon-btn back-btn" id="onet-back" aria-label="Volver al menú">‹</button>
       <div class="topbar-center">
@@ -214,38 +214,19 @@
           <span class="topbar-label">Puntos</span>
           <span class="topbar-score" id="onet-score">0</span>
         </div>
-        <div class="timer-pill" id="onet-timer-display">⏱ 02:00</div>
       </div>
       <div class="topbar-right">
-        <div class="lives-display" id="onet-lives" aria-label="Vidas">❤️❤️❤️</div>
-        <button class="icon-btn" id="onet-how-to-btn-game" aria-label="Cómo jugar Onet">❓</button>
-        <button class="icon-btn" id="onet-hint-btn" aria-label="Pista Onet">💡</button>
+        <button class="icon-btn" id="onet-how-to-btn-game" aria-label="Cómo jugar">❓</button>
+        <button class="icon-btn" id="onet-new-btn" aria-label="Nueva partida">✨</button>
       </div>
     </div>
 
-    <canvas id="onet-canvas" class="onet-canvas" aria-label="Tablero Onet"></canvas>
-    <div id="onet-board" class="onet-board" role="grid" aria-label="Tablero Onet iconos"></div>
-
-    <div class="onet-difficulty-select" id="onet-difficulty-select">
-      <h2>Elige Dificultad</h2>
-      <div class="diff-cards">
-        <button class="diff-card" data-diff="easy" aria-label="Fácil">
-          <span class="diff-emoji">🌸</span>
-          <span class="diff-name">Fácil</span>
-          <span class="diff-desc">6×5 · 90s · 3 vidas</span>
-        </button>
-        <button class="diff-card" data-diff="medium" aria-label="Medio">
-          <span class="diff-emoji">🦊</span>
-          <span class="diff-name">Medio</span>
-          <span class="diff-desc">8×6 · 60s · 2 vidas</span>
-        </button>
-        <button class="diff-card" data-diff="hard" aria-label="Difícil">
-          <span class="diff-emoji">🦅</span>
-          <span class="diff-name">Difícil</span>
-          <span class="diff-desc">10×8 · 90s · 1 vida</span>
-        </button>
+    <div class="block-game-body">
+      <div id="block-board" class="block-board" role="grid" aria-label="Tablero de Bloques"></div>
+      
+      <div class="block-tray-wrap">
+        <div id="block-pieces" class="block-pieces" aria-label="Piezas disponibles"></div>
       </div>
-      <button class="btn-text" id="onet-how-to-btn">❓ ¿Cómo jugar?</button>
     </div>
   </div>
 
@@ -328,6 +309,30 @@
       <div class="modal-actions">
         <button class="btn-primary" id="gameover-replay">Jugar de nuevo</button>
         <button class="btn-secondary" id="gameover-home">Inicio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ LIFE PICKER MODAL ═══════════════════════ -->
+  <div id="life-picker-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Elegir destino de vida" hidden>
+    <div class="modal-box">
+      <div class="gameover-emoji">🎁</div>
+      <h2 class="modal-title">¡Vida Extra!</h2>
+      <p class="modal-subtitle">¿A qué juego quieres añadir esta vida?</p>
+      
+      <div class="life-picker-options">
+        <button class="life-option-btn card-glow-purple" data-game="mg">
+          <span class="option-emoji">🔢</span>
+          <span class="option-name">MyGames</span>
+        </button>
+        <button class="life-option-btn card-glow-teal" data-game="mj">
+          <span class="option-emoji">🀄</span>
+          <span class="option-name">Mahjong</span>
+        </button>
+        <button class="life-option-btn card-glow-orange" data-game="onet">
+          <span class="option-emoji">🦋</span>
+          <span class="option-name">Onet</span>
+        </button>
       </div>
     </div>
   </div>

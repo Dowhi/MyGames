@@ -54,6 +54,8 @@ export class MahjongGame {
     this._timer   = null;
     this._elapsed = 0;
     this._faceDownFlipped = null;
+    this.comboMultiplier = 1;
+    this.lastMatchTime = 0;
 
     this.newBtn.addEventListener('click', () => this.start());
     this.hintBtn.addEventListener('click', () => this.showHint());
@@ -71,6 +73,8 @@ export class MahjongGame {
     this.tray     = [];
     this._elapsed = 0;
     this._faceDownFlipped = null;
+    this.comboMultiplier = 1;
+    this.lastMatchTime = 0;
     
     // Base 3 lives + bonus from MyGames Classic
     this.lives = 3 + Storage.getMahjongBonusLives();
@@ -236,9 +240,6 @@ export class MahjongGame {
           const charSpan = document.createElement('span');
           charSpan.className = 'mj-tile-char';
           charSpan.style.backgroundImage = `url(${tile.symbol.img})`;
-          charSpan.style.backgroundSize = 'contain';
-          charSpan.style.backgroundRepeat = 'no-repeat';
-          charSpan.style.backgroundPosition = 'center';
           content.appendChild(charSpan);
       }
       el.appendChild(content);
@@ -429,12 +430,39 @@ export class MahjongGame {
 
   removeTrayPair(i, j, symbolChar) {
     setTimeout(() => {
+      const tileA = this.tray[i];
+      const tileB = this.tray[j];
+      
       this.tray.splice(Math.max(i, j), 1);
       this.tray.splice(Math.min(i, j), 1);
 
       this.pairs++;
-      this.score += 50;
-      animateScore('mj-score', this.score - 50, this.score);
+      
+      // Dynamic Scoring:
+      // 1. Layer Bonus
+      const avgLayer = (tileA.layer + tileB.layer) / 2;
+      let basePoints = 50 + Math.floor(avgLayer * 25);
+      
+      // 2. Combo System (5-second window)
+      const now = this._elapsed;
+      if (this.lastMatchTime > 0 && (now - this.lastMatchTime) <= 5) {
+        this.comboMultiplier = Math.min(this.comboMultiplier + 1, 8); // Max 8x
+      } else {
+        this.comboMultiplier = 1;
+      }
+      this.lastMatchTime = now;
+      
+      const sessionPoints = basePoints * this.comboMultiplier;
+      const oldScore = this.score;
+      this.score += sessionPoints;
+      
+      animateScore('mj-score', oldScore, this.score);
+      
+      // Feedback
+      if (this.comboMultiplier > 1) {
+          this.showSpecialMsg(`🔥 ¡COMBO x${this.comboMultiplier}! +${sessionPoints}`);
+      }
+
       // Luxury tray match FX
       const cx = window.innerWidth / 2, cy = window.innerHeight * 0.75;
       spawnGoldenRing(cx, cy);
@@ -522,13 +550,38 @@ export class MahjongGame {
   // ─── Win / Lose ──────────────────────────────────────────────
   onWin() {
     clearInterval(this._timer);
+    
+    // Final End-Game Bonuses
+    const timeBonus = Math.max(0, 3000 - this._elapsed * 5);
+    const lifeBonus = this.lives * 500;
+    const finalTotal = this.score + timeBonus + lifeBonus;
+    
     Storage.updateStats('mj', true, this.pairs);
     checkAndUnlock('mj_win');
+    
     const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
     spawnParticles(cx, cy, 20);
     spawnGoldenRing(cx, cy);
     setTimeout(() => spawnGoldenRing(cx, cy), 150);
-    showGameOver({ score: this.score, game: 'mj', won: true, onReplay: () => this.start() });
+    
+    // Luxury feedback for the total performance
+    setTimeout(() => {
+      this.showSpecialMsg(`🎯 VICTORIA\nBase: ${Math.floor(this.score)}\nBonos: +${Math.floor(timeBonus + lifeBonus)}`);
+      
+      // Award Life Picker if total score > 3000
+      if (finalTotal >= 3000) {
+          import('./script.js').then(m => m.showLifePicker(1));
+      }
+
+      setTimeout(() => {
+        showGameOver({ 
+          score: Math.floor(finalTotal), 
+          game: 'mj', 
+          won: true, 
+          onReplay: () => this.start() 
+        });
+      }, 2000);
+    }, 500);
   }
 
   onLose() {

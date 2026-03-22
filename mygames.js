@@ -24,6 +24,8 @@ export class MyGamesGame {
     this.addBtn       = document.getElementById('mg-add-btn');
     this.newBtn       = document.getElementById('mg-new-game-btn');
     this.msgEl        = document.getElementById('special-match-msg');
+    this.pairsEl      = document.getElementById('mg-pairs');
+    this.emptyEl      = document.getElementById('mg-empty');
 
     this.cells     = [];  // 1D array of { el, val }  (val=0 means empty)
     this.selected  = null;
@@ -56,17 +58,32 @@ export class MyGamesGame {
       this.hintUsed  = false;
       this.generateBoard();
     }
+    
+    // Always apply pending bonus lives (even on resumed games)
+    this.applyPendingBonusLives();
+
     this.render();
     this.saveState();
+  }
+
+  applyPendingBonusLives() {
+    const bonus = Storage.getClassicBonusLives();
+    if (bonus > 0) {
+      this.hintsLeft += bonus;
+      this.addsLeft  += bonus;
+      Storage.consumeClassicBonusLives();
+      setTimeout(() => this.showSpecialMsg(`🎁 +${bonus} BONOS APLICADOS`), 800);
+    }
   }
 
   // Generate initial board: [1..9] repeated and shuffled
   generateBoard() {
     const nums = [];
-    // Fill with paired sets: use numbers 1-9 many times, ensure each has a pair
-    for (let i = 0; i < 9; i++) nums.push(i + 1, i + 1);
-    // Shuffle and pad to COLS rows
-    shuffle(nums);
+    // User requested 35 numbers. 
+    // We generate 35 numbers, usually random 1-9 is standard for Match-10 games
+    for (let i = 0; i < 35; i++) {
+        nums.push(Math.floor(Math.random() * 9) + 1);
+    }
     // Pad to multiple of COLS
     while (nums.length % COLS !== 0) nums.push(0);
     this.cells = nums.map(v => ({ val: v }));
@@ -110,11 +127,20 @@ export class MyGamesGame {
     this.updateInfo();
   }
 
-  updateInfo() {
-    animateScore('mg-score', +this.scoreEl.textContent || 0, this.score);
+  updateInfo(skipScoreRoll = false) {
+    if (!skipScoreRoll) {
+      animateScore('mg-score', +this.scoreEl.textContent || 0, this.score);
+    }
     if (this.phaseDisplay) this.phaseDisplay.textContent = `Fase ${this.phase}`;
     if (this.hintsCountEl) this.hintsCountEl.textContent = this.hintsLeft;
     if (this.addsCountEl)  this.addsCountEl.textContent  = this.addsLeft;
+    
+    // Bottom bar counters: Parejas and Vacías (cleared cells)
+    if (this.pairsEl) this.pairsEl.textContent = this.pairs;
+    if (this.emptyEl) {
+        const clearedCount = this.cells.filter(c => c.val === 0).length;
+        this.emptyEl.textContent = clearedCount;
+    }
     
     // Disable buttons if no resources left
     if (this.hintBtn) this.hintBtn.style.opacity = this.hintsLeft > 0 ? '1' : '0.3';
@@ -257,12 +283,20 @@ export class MyGamesGame {
     const rectB = cellB.el.getBoundingClientRect();
     const midX  = (rectA.left + rectA.width / 2 + rectB.left + rectB.width / 2) / 2;
     const midY  = (rectA.top  + rectA.height / 2 + rectB.top  + rectB.height / 2) / 2;
+    const scoreBefore = this.score;
+    this.score += pts;
+    this.pairs++;
+
     const scoreRect = this.scoreEl.getBoundingClientRect();
 
     spawnGoldenRing(midX, midY);
     spawnParticles(midX, midY, 7);
     spawnScoreParticles(midX, midY, scoreRect.left + scoreRect.width / 2, scoreRect.top + scoreRect.height / 2, 5);
-    showScorePopup(midX, midY, '+' + pts);
+    
+    // Pass the rolling action as impact callback
+    showScorePopup(midX, midY, '+' + pts, () => {
+      animateScore('mg-score', scoreBefore, this.score);
+    });
 
     playSound(basePts === 4 ? 'special' : 'match');
     if (basePts === 4) this.showSpecialMsg('🥳 -- BIEN VISTO -- 🎉');
@@ -271,35 +305,33 @@ export class MyGamesGame {
     setTimeout(() => {
       cellA.val = 0; if (cellA.el) { cellA.el.textContent = ''; cellA.el.className = 'mg-cell empty'; }
       cellB.val = 0; if (cellB.el) { cellB.el.textContent = ''; cellB.el.className = 'mg-cell empty'; }
-      this.updateInfo();
+      this.updateInfo(true); // skip rolling here, handled by popup impact
       this.saveState();
       this.trimEmptyRows();
       this.checkAchievements();
       if (this.isBoardEmpty()) {
         this.score += 150 * this.phase;
         this.advancePhase();
-      } else if (!this.hasValidMoves()) {
-        this.onAddNumbers();
       }
     }, 500);
   }
 
   advancePhase() {
-      // Reward Mahjong Lives based on phase milestone
-      if (this.phase === 3) {
-          Storage.addMahjongBonusLives(1);
-          this.showSpecialMsg('🏆 +1 VIDA PARA MAHJONG');
-      } else if (this.phase === 5) {
-          Storage.addMahjongBonusLives(2);
-          this.showSpecialMsg('🎖️ +2 VIDAS PARA MAHJONG');
-      } else if (this.phase === 7) {
-          Storage.addMahjongBonusLives(3);
-          this.showSpecialMsg('👑 +3 VIDAS PARA MAHJONG');
+      // Reward Life Picker every 2 phases
+      if (this.phase % 2 === 0) {
+          import('./script.js').then(m => {
+              m.showLifePicker(1);
+              this.showSpecialMsg('🎁 ¡HAS GANADO UNA VIDA!');
+          });
       } else {
           this.showSpecialMsg(`FASE ${this.phase} COMPLETADA`);
       }
       
       this.phase++;
+      // Reset Hints and Adds on New Phase
+      this.hintsLeft = 5;
+      this.addsLeft  = 5;
+      
       this.generateBoard();
       this.render();
       this.saveState();
@@ -388,6 +420,19 @@ export class MyGamesGame {
     this.addsLeft--;
     this.updateInfo();
     playSound('click');
+
+    // Find the last non-empty cell to append right after it
+    let lastIdx = -1;
+    for (let i = this.cells.length - 1; i >= 0; i--) {
+      if (this.cells[i].val !== 0 && this.cells[i].val !== undefined) {
+        lastIdx = i;
+        break;
+      }
+    }
+    // Truncate to the last active cell so we append "a continuación"
+    if (lastIdx !== -1 && lastIdx < this.cells.length - 1) {
+      this.cells = this.cells.slice(0, lastIdx + 1);
+    }
 
     // Append existing active cells again
     active.forEach(c => this.cells.push({ val: c.val }));

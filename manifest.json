@@ -1,7 +1,7 @@
 {
   "name": "MyGames",
   "short_name": "MyGames",
-  "description": "Colección premium de juegos de puzzle: MyGames Classic, Mahjong Solitaire y Onet Fauna Connect.",
+  "description": "Colección premium de juegos de puzzle: MyGames Classic, Mahjong Solitaire y Block Deluxe.",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",

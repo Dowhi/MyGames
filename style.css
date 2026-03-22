@@ -124,7 +124,7 @@ body::before {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 1;
+  z-index: 100; /* Increased to be above board and UI */
 }
 
 /* ─── SCREENS ────────────────────────────────────────────────── */
@@ -744,15 +744,15 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start !important; /* Move up */
   overflow: auto;
-  padding: 10px var(--gap-md);
+  padding: 0 var(--gap-md); 
   background: radial-gradient(circle at center, #1a3d34 0%, #0d1f1a 100%);
   min-height: auto;
 }
 .mj-board {
   position: relative;
-  margin-top: 10px;
+  margin-top: 2px; /* Minimal margin */
 }
 
 /* Mahjong tiles — Solid 3D Physical Look */
@@ -765,7 +765,7 @@ body::before {
   cursor: pointer;
   user-select: none;
   
-  background: #fbf8f2;
+  background: #ffffff; /* pure white to match images */
   border: 1px solid rgba(0,0,0,0.1);
   
   /* Thick 3D Side (Teal/Green) */
@@ -820,24 +820,23 @@ body::before {
 }
 
 .mj-tile-sticker {
-  width: 92%;
-  height: 92%;
-  background-size: contain;
+  width: 100%;
+  height: 100%;
+  background-size: 100% 100%; /* Force fill */
   background-repeat: no-repeat;
   background-position: center;
   pointer-events: none;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
 }
 
 .mj-tile-char {
   width: 100%;
   height: 100%;
-  background-size: 140%;
+  background-size: 135%; /* Increased zoom for better visibility without cropping */
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: center 15%; /* Balanced centering */
   display: block;
   user-select: none;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+  z-index: 1;
 }
 
 .mj-tile-content {
@@ -847,6 +846,14 @@ body::before {
   align-items: center;
   justify-content: center;
   transition: transform 0.2s var(--ease-luxury);
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+/* Base green for face-down tiles to prevent white bleed */
+.mj-tile.face-down {
+  background-color: #203a32;
 }
 
 .mj-tile.free:active .mj-tile-content {
@@ -912,132 +919,110 @@ body::before {
   to   { transform: scale(1) translateY(0);  opacity: 1; }
 }
 
-/* ─── ONET BOARD ─────────────────────────────────────────────── */
-.onet-canvas {
-  position: absolute;
-  top: 0; left: 0;
-  pointer-events: none;
-  z-index: 5;
-}
-.onet-board {
-  position: relative;
-  z-index: 10;
-  display: grid;
-  gap: 4px;
-  padding: var(--gap-md);
-  width: 100%;
-  overflow: auto;
-}
-.onet-cell {
-  width: 100%;
-  aspect-ratio: 1;
+/* ═══════════════════════ BLOCK DELUXE (TETRIS ZEN) ═══════════════════════ */
+.block-game-body {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
-  border-radius: var(--r-xs);
-  cursor: pointer;
-  transition: transform var(--dur-fast) var(--ease-luxury),
-              background var(--dur-fast),
-              box-shadow var(--dur-fast);
-  background: var(--glass-10);
-  border: 0.5px solid rgba(255,255,255,0.07);
-  box-shadow: var(--inner-glow);
+  gap: 30px;
+  padding: 20px;
+  width: 100%;
 }
-.onet-cell:hover {
-  transform: scale(1.10);
-  background: var(--glass-15);
-  border-color: rgba(201,168,76,0.22);
+
+.block-board {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  gap: 4px;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.4);
 }
-.onet-cell.selected {
-  background: rgba(201,168,76,0.14);
-  border-color: rgba(201,168,76,0.55);
-  box-shadow: 0 0 18px rgba(201,168,76,0.28),
-              inset 0 1px 0 rgba(232,201,122,0.25);
-  transform: scale(1.12);
+
+.block-cell {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  border: 0.5px solid rgba(255,255,255,0.02);
 }
-.onet-cell.empty {
-  cursor: default;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
+
+.block-cell.filled {
+  background: var(--grad-champagne);
+  box-shadow: 0 0 10px rgba(201,168,76,0.3), inset 0 1px 0 rgba(255,255,255,0.4);
+  border-color: rgba(201,168,76,0.4);
 }
-.onet-cell.removing {
-  animation: onetRemove 0.42s var(--ease-luxury) forwards;
+
+.block-cell.preview {
+  background: rgba(201,168,76,0.2) !important;
+  box-shadow: 0 0 8px rgba(201,168,76,0.4);
 }
-@keyframes onetRemove {
-  0%   { transform: scale(1.1); opacity: 1;
-         box-shadow: 0 0 16px rgba(201,168,76,0.30); }
+
+.block-cell.clearing {
+  animation: blockClear 0.5s var(--ease-luxury) forwards;
+}
+
+@keyframes blockClear {
+  0%   { transform: scale(1); opacity: 1; filter: brightness(2); }
+  50%  { transform: scale(1.2); opacity: 0.7; }
   100% { transform: scale(0); opacity: 0; }
 }
 
-/* Difficulty selector */
-.onet-difficulty-select {
-  position: absolute;
-  inset: 0;
+.block-tray-wrap {
+  width: 100%;
+  max-width: 400px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 16px;
+  padding: 15px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.block-pieces {
   display: flex;
-  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  min-height: 100px;
+}
+
+.piece-container {
+  width: 100px;
+  height: 100px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--gap-lg);
-  background: radial-gradient(ellipse 80% 60% at 50% 40%, #111827 0%, #080b12 100%);
-  z-index: 20;
-  padding: var(--gap-xl);
+  cursor: grab;
+  transition: transform 0.2s;
 }
-.onet-difficulty-select h2 {
-  font-family: var(--font-serif);
-  font-size: 1.9rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+
+.piece-container:active { cursor: grabbing; }
+
+.piece-grid {
+  display: grid;
+  gap: 2px;
+}
+
+.piece-block {
+  width: 20px;
+  height: 20px;
   background: var(--grad-champagne);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+  border: 0.5px solid rgba(0,0,0,0.2);
 }
-.diff-cards {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-sm);
-  width: 100%;
-  max-width: 320px;
-}
-.diff-card {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-md);
-  padding: var(--gap-md);
-  background: var(--glass-10);
-  border: 0.5px solid rgba(201,168,76,0.15);
-  border-radius: var(--r-lg);
-  backdrop-filter: blur(24px);
-  box-shadow: var(--shadow-sm), var(--inner-glow);
-  transition: transform var(--dur-med) var(--ease-luxury),
-              border-color var(--dur-med),
-              box-shadow var(--dur-med);
-  text-align: left;
-}
-.diff-card:hover {
-  transform: translateY(-3px) scale(1.01);
-  border-color: rgba(201,168,76,0.40);
-  box-shadow: var(--shadow-md), 0 0 28px rgba(201,168,76,0.10), var(--inner-glow);
-}
-.diff-emoji {
-  font-size: 1.6rem;
-  opacity: 0.80;
-}
-.diff-name {
-  font-family: var(--font-serif);
-  font-size: 1.05rem;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-}
-.diff-desc {
-  font-size: 0.65rem;
-  font-weight: 400;
-  color: var(--text-secondary);
-  letter-spacing: 0.10em;
-  display: block;
-  margin-top: 2px;
+
+.piece-container.dragging {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.95;
+  transition: none !important;
+  transform: scale(1.4);
 }
 .diff-card > div { display: flex; flex-direction: column; }
 
@@ -1431,4 +1416,67 @@ body::before {
   }
   .section-title { padding-left: var(--gap-xl); }
   .mg-cell  { font-size: 1.2rem; }
+}
+
+/* ═══════════════════════ LIFE PICKER MODAL ═══════════════════════ */
+.life-picker-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.life-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+}
+
+.life-option-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.life-option-btn .option-emoji {
+  font-size: 1.8rem;
+}
+
+.life-option-btn .option-name {
+  flex: 1;
+}
+
+/* Specific glows for life options */
+.card-glow-purple:hover { box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); border-color: rgba(168, 85, 247, 0.6); }
+.card-glow-teal:hover   { box-shadow: 0 0 20px rgba(20, 184, 166, 0.4); border-color: rgba(20, 184, 166, 0.6); }
+.card-glow-orange:hover { box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);  border-color: rgba(249, 115, 22, 0.6);  }
+
+.modal-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+/* ─── Floating Score Label ──────────────────────────────────── */
+.floating-score-label {
+  position: fixed;
+  z-index: 10000;
+  color: var(--gold-light);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 1.8rem;
+  text-shadow: 0 0 15px rgba(201,168,76,0.6), 0 2px 10px rgba(0,0,0,0.8);
+  pointer-events: none;
+  white-space: nowrap;
 }

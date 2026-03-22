@@ -2,16 +2,16 @@
 //  MyGames — script.js  (Main orchestrator)
 // ═══════════════════════════════════════════════════════════════
 
-import { MyGamesGame } from './mygames.js';
-import { MahjongGame }  from './mahjong.js';
-import { OnetGame }     from './onet.js';
+import { MyGamesGame }     from './mygames.js';
+import { MahjongGame }      from './mahjong.js';
+import { BlockDeluxeGame }  from './onet.js';
 
 // ─── Service Worker Registration ────────────────────────────────
-// if ('serviceWorker' in navigator) {
-//   window.addEventListener('load', () => {
-//     navigator.serviceWorker.register('./service-worker.js').catch(() => {});
-//   });
-// }
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  PERSISTENCE (localStorage)
@@ -97,7 +97,24 @@ export const Storage = {
   // Mahjong Bonus Lives (from MyGames Classic)
   getMahjongBonusLives()    { return LS.get('mj_bonus_lives', 0); },
   addMahjongBonusLives(n)   { LS.set('mj_bonus_lives', this.getMahjongBonusLives() + n); },
-  consumeMahjongBonusLives() { LS.set('mj_bonus_lives', 0); }
+  consumeMahjongBonusLives() { LS.set('mj_bonus_lives', 0); },
+
+  // Classic Bonus Lives
+  getClassicBonusLives()    { return LS.get('classic_bonus_lives', 0); },
+  addClassicBonusLives(n)   { LS.set('classic_bonus_lives', this.getClassicBonusLives() + n); },
+  consumeClassicBonusLives() { LS.set('classic_bonus_lives', 0); },
+
+  // Onet Bonus Lives
+  getOnetBonusLives()       { return LS.get('onet_bonus_lives', 0); },
+  addOnetBonusLives(n)      { LS.set('onet_bonus_lives', this.getOnetBonusLives() + n); },
+  consumeOnetBonusLives()   { LS.set('onet_bonus_lives', 0); },
+
+  // Generic helper for all games
+  addBonusLives(game, n) {
+    if (game === 'mg') this.addClassicBonusLives(n);
+    else if (game === 'mj') this.addMahjongBonusLives(n);
+    else if (game === 'onet') this.addOnetBonusLives(n);
+  }
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -149,12 +166,12 @@ const TUTORIALS = {
     `
   },
   onet: {
-    title: '🦋 Onet Fauna',
+    title: '💎 Block Deluxe',
     html: `
-      <div class="tutorial-step"><span class="step-icon">🎯</span><div><strong>Objetivo:</strong> Conectar todos los animales idénticos por parejas.</div></div>
-      <div class="tutorial-step"><span class="step-icon">🔗</span><div><strong>Línea de Unión:</strong> La conexión solo es válida si se puede trazar con un <strong>máximo de 2 giros</strong> (3 tramos rectos).</div></div>
-      <div class="tutorial-step"><span class="step-icon">🌐</span><div><strong>Espacio Exterior:</strong> Puedes usar el borde exterior del tablero para realizar conexiones.</div></div>
-      <div class="tutorial-step"><span class="step-icon">⏱</span><div><strong>Resistencia:</strong> Vigila el tiempo y tus vidas. Cada fallo restará una de tus oportunidades.</div></div>
+      <div class="tutorial-step"><span class="step-icon">🎯</span><div><strong>Objetivo:</strong> Colocar piezas en el tablero para completar filas y columnas.</div></div>
+      <div class="tutorial-step"><span class="step-icon">🧩</span><div><strong>Piezas:</strong> Arrastra una de las 3 piezas inferiores al tablero de 10x10.</div></div>
+      <div class="tutorial-step"><span class="step-icon">💥</span><div><strong>Eliminar:</strong> Cuando completas una <strong>fila horizontal</strong> o <strong>columna vertical</strong> entera, esta desaparece.</div></div>
+      <div class="tutorial-step"><span class="step-icon">⚠️</span><div><strong>Fin de Juego:</strong> La partida termina si no hay espacio para ninguna de las piezas actuales. ¡Piensa con antelación!</div></div>
     `
   }
 };
@@ -354,36 +371,92 @@ animateParticles();
 // ═══════════════════════════════════════════════════════════════
 //  SCORE POPUP
 // ═══════════════════════════════════════════════════════════════
-export function showScorePopup(x, y, text) {
-  const el = document.getElementById('score-popup');
+// ═══════════════════════════════════════════════════════════════
+//  HIGH-END SCORE POPUP (Dynamic label with fly-to-score trajectory)
+// ═══════════════════════════════════════════════════════════════
+export function showScorePopup(x, y, text, onImpact) {
+  const el = document.createElement('div');
+  el.className = 'floating-score-label';
   el.textContent = text;
   el.style.left = x + 'px';
   el.style.top  = y + 'px';
-  el.style.transition = 'none';
-  el.style.opacity = '1';
-  el.style.transform = 'translate(-50%, 0)';
-  setTimeout(() => {
-    el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-    el.style.opacity = '0';
-    el.style.transform = 'translate(-50%, -60px)';
-  }, 50);
+  el.style.position = 'fixed';
+  el.style.pointerEvents = 'none';
+  el.style.zIndex = '9999';
+  el.style.transform = 'translate(-50%, -50%) scale(0)';
+  el.style.opacity = '0';
+  document.body.appendChild(el);
+
+  const scoreBoard = document.getElementById('mg-score')?.getBoundingClientRect() 
+                   || document.getElementById('mahjong-score')?.getBoundingClientRect()
+                   || { left: window.innerWidth / 2, top: 40, width: 0, height: 0 };
+  
+  const targetX = scoreBoard.left + scoreBoard.width / 2;
+  const targetY = scoreBoard.top + scoreBoard.height / 2;
+
+  // Phase 1: Appearance & Pause (Ease Out / 0.2s)
+  // We use Web Animations API for precise control
+  const appear = el.animate([
+    { transform: 'translate(-50%, -50%) scale(0)', opacity: 0 },
+    { transform: 'translate(-50%, -50%) scale(1.3)', opacity: 1, offset: 0.7 },
+    { transform: 'translate(-50%, -50%) scale(1.0)', opacity: 1 }
+  ], { duration: 250, easing: 'ease-out', fill: 'forwards' });
+
+  appear.onfinish = () => {
+    // Phase 2: Trajectory to goal (Ease In / 0.7s)
+    setTimeout(() => {
+      const fly = el.animate([
+        { left: x + 'px', top: y + 'px' },
+        { left: targetX + 'px', top: targetY + 'px' }
+      ], { duration: 700, easing: 'ease-in', fill: 'forwards' });
+
+      fly.onfinish = () => {
+        el.remove();
+        
+        // Impact Effect on Score Board
+        const targetEl = document.getElementById('mg-score') || document.getElementById('mahjong-score');
+        if (targetEl) {
+          targetEl.animate([
+            { transform: 'scale(1)' },
+            { transform: 'scale(1.25)' },
+            { transform: 'scale(1)' }
+          ], { duration: 200, easing: 'ease-out' });
+        }
+
+        if (onImpact) onImpact();
+      };
+    }, 100); // Small pause at the beginning
+  };
 }
 
-// Animate topbar score "rolling"
-let _rollingTimer = null;
-export function animateScore(elId, from, to, duration = 600) {
+// Animate topbar score "rolling" with Ease In
+let _rollingAnims = new Map();
+export function animateScore(elId, from, to, duration = 1000) {
   const el = document.getElementById(elId);
   if (!el) return;
-  clearTimeout(_rollingTimer);
+  if (from === to) { el.textContent = to; return; }
+
+  // Cancel any existing animation for this element
+  if (_rollingAnims.has(elId)) cancelAnimationFrame(_rollingAnims.get(elId));
+
   const start = performance.now();
   const tick = (now) => {
-    const prog = Math.min(1, (now - start) / duration);
-    const val  = Math.round(from + (to - from) * prog);
+    const timeProg = Math.min(1, (now - start) / duration);
+    // Ease In Cubic: start very slow, accelerate more dramatically
+    const valueProg = timeProg * timeProg * timeProg;
+    const val  = Math.round(from + (to - from) * valueProg);
     el.textContent = val;
-    if (prog < 1) requestAnimationFrame(tick);
-    else { el.textContent = to; el.classList.add('pop'); setTimeout(() => el.classList.remove('pop'), 200); }
+
+    if (timeProg < 1) {
+      _rollingAnims.set(elId, requestAnimationFrame(tick));
+    } else {
+      el.textContent = to;
+      _rollingAnims.delete(elId);
+      el.classList.add('pop');
+      setTimeout(() => el.classList.remove('pop'), 200);
+    }
   };
-  requestAnimationFrame(tick);
+  _rollingAnims.set(elId, requestAnimationFrame(tick));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -438,6 +511,33 @@ export function showGameOver(opts) {
     setTimeout(() => spawnParticles(cx - 60, cy - 40, 10), 180);
     setTimeout(() => spawnParticles(cx + 60, cy - 40, 10), 260);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  LIFE PICKER MODAL
+// ═══════════════════════════════════════════════════════════════
+export function showLifePicker(amount, callback) {
+  const modal = document.getElementById('life-picker-modal');
+  if (!modal) return;
+  modal.hidden = false;
+
+  const buttons = modal.querySelectorAll('.life-option-btn');
+  const handler = (e) => {
+    const game = e.currentTarget.dataset.game;
+    modal.hidden = true;
+    playSound('special');
+    Storage.addBonusLives(game, amount);
+    // Cleanup listeners
+    buttons.forEach(b => {
+      const nb = b.cloneNode(true);
+      b.replaceWith(nb);
+    });
+    if (callback) callback(game);
+  };
+
+  buttons.forEach(b => {
+    b.addEventListener('click', handler);
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -527,7 +627,7 @@ function renderStats() {
     { icon: '🎮', label: 'Total Partidas', val: s.totalGames },
     { icon: '🔢', label: 'MG Victorias',   val: s.mg?.wins || 0 },
     { icon: '🀄', label: 'MJ Victorias',   val: s.mj?.wins || 0 },
-    { icon: '🦋', label: 'Onet Victorias', val: s.onet?.wins || 0 },
+    { icon: '💎', label: 'Block Victorias', val: s.onet?.wins || 0 },
     { icon: '💔', label: 'Derrotas Totales', val: (s.mg?.losses || 0) + (s.mj?.losses || 0) + (s.onet?.losses || 0) },
     { icon: '🔗', label: 'Parejas Totales', val: (s.mg?.pairs || 0) + (s.mj?.pairs || 0) + (s.onet?.pairs || 0) },
     { icon: '⭐', label: 'Mejor Puntuación', val: Storage.getBestScore('mg') },
@@ -572,8 +672,9 @@ function wireNavigation() {
   });
   document.getElementById('card-onet').addEventListener('click', () => {
     navigateTo('onet-screen');
-    activeGames.onet = activeGames.onet || new OnetGame();
-    activeGames.onet.showDifficultySelect();
+    activeGames.onet = activeGames.onet || new BlockDeluxeGame();
+    activeGames.onet.start();
+    checkAndUnlock('multi_game_onet');
   });
 
   // Back buttons
@@ -622,10 +723,17 @@ function wireNavigation() {
 
   // How to play buttons
   const showOnetTutorial = () => showHowTo('onet');
-  document.getElementById('onet-how-to-btn').addEventListener('click', showOnetTutorial);
-  document.getElementById('onet-how-to-btn-game').addEventListener('click', showOnetTutorial);
-  document.getElementById('mg-how-to-btn').addEventListener('click', () => showHowTo('mg'));
-  document.getElementById('mj-how-to-btn').addEventListener('click', () => showHowTo('mj'));
+  const onetBtn1 = document.getElementById('onet-how-to-btn');
+  if (onetBtn1) onetBtn1.addEventListener('click', showOnetTutorial);
+  
+  const onetBtn2 = document.getElementById('onet-how-to-btn-game');
+  if (onetBtn2) onetBtn2.addEventListener('click', showOnetTutorial);
+  
+  const mgBtn = document.getElementById('mg-how-to-btn');
+  if (mgBtn) mgBtn.addEventListener('click', () => showHowTo('mg'));
+  
+  const mjBtn = document.getElementById('mj-how-to-btn');
+  if (mjBtn) mjBtn.addEventListener('click', () => showHowTo('mj'));
 
   document.getElementById('close-howto-btn').addEventListener('click', () => {
     document.getElementById('howto-modal').hidden = true;
