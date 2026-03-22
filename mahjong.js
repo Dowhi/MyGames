@@ -10,23 +10,23 @@ import {
 
 // ─── Tile Symbol Set (Zodiacs & Characters from Photo) ───────
 const TILE_SYMBOLS = [
-  { id: 'eagle', img: 'assets/mahjong/eagle.png' },
-  { id: 'lynx', img: 'assets/mahjong/lynx.png' },
-  { id: 'frog', img: 'assets/mahjong/frog.png' },
-  { id: 'squirrel', img: 'assets/mahjong/squirrel.png' },
-  { id: 'fawn', img: 'assets/mahjong/fawn.png' },
-  { id: 'snake', img: 'assets/mahjong/snake.png' },
-  { id: 'hedgehog', img: 'assets/mahjong/hedgehog.png' },
-  { id: 'badger', img: 'assets/mahjong/badger.png' },
-  { id: 'stag', img: 'assets/mahjong/stag.png' },
-  { id: 'owl_white', img: 'assets/mahjong/owl_white.png' },
-  { id: 'hamster', img: 'assets/mahjong/hamster.png' },
-  { id: 'dormouse', img: 'assets/mahjong/dormouse.png' },
-  { id: 'owl_brown', img: 'assets/mahjong/owl_brown.png' },
-  { id: 'boar', img: 'assets/mahjong/boar.png' },
-  { id: 'stork', img: 'assets/mahjong/stork.png' },
-  { id: 'fox', img: 'assets/mahjong/fox.png' },
-  { id: 'rabbit', img: 'assets/mahjong/rabbit.png' }
+  { id: 'apple',     img: 'assets/mahjong/food_apple.png' },
+  { id: 'banana',    img: 'assets/mahjong/food_banana.png' },
+  { id: 'bread',     img: 'assets/mahjong/food_bread.png' },
+  { id: 'broccoli',  img: 'assets/mahjong/food_broccoli.png' },
+  { id: 'carrot',    img: 'assets/mahjong/food_carrot.png' },
+  { id: 'cheese',    img: 'assets/mahjong/food_cheese.png' },
+  { id: 'chocolate', img: 'assets/mahjong/food_chocolate.png' },
+  { id: 'coffee',    img: 'assets/mahjong/food_coffee.png' },
+  { id: 'croissant', img: 'assets/mahjong/food_croissant.png' },
+  { id: 'egg',       img: 'assets/mahjong/food_egg.png' },
+  { id: 'fish',      img: 'assets/mahjong/food_fish.png' },
+  { id: 'grapes',    img: 'assets/mahjong/food_grapes.png' },
+  { id: 'olive',     img: 'assets/mahjong/food_olive.png' },
+  { id: 'pear',      img: 'assets/mahjong/food_pear.png' },
+  { id: 'pizza',     img: 'assets/mahjong/food_pizza.png' },
+  { id: 'sushi',     img: 'assets/mahjong/food_sushi.png' },
+  { id: 'walnut',    img: 'assets/mahjong/food_walnut.png' }
 ];
 
 const TILE_W  = 54;
