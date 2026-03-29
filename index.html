@@ -9,14 +9,16 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>MyGames — Premium Suite</title>
 
-  <!-- PWA Manifest -->
+  <!-- Favicon & App Icons -->
+  <link rel="icon" type="image/png" href="assets/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
   <link rel="manifest" href="manifest.json">
 
   <!-- Google Fonts — Luxury Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@200;300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
-
+  
   <!-- Styles -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -109,20 +111,20 @@
           </div>
         </button>
 
-        <!-- Block Deluxe (Replaced Onet) -->
-        <button class="game-card" id="card-onet" aria-label="Jugar Block Deluxe Tetris Zen">
-          <div class="card-glow glow-orange"></div>
+        <!-- Solitaire -->
+        <button class="game-card" id="card-solitaire" aria-label="Jugar Solitario">
+          <div class="card-glow glow-gold"></div>
           <div class="card-content">
-            <div class="card-emoji">💎</div>
+            <div class="card-emoji">🃏</div>
             <div class="card-info">
-              <h3 class="card-title">Block Deluxe</h3>
-              <p class="card-subtitle">Tetris Zen</p>
+              <h3 class="card-title">Solitario</h3>
+              <p class="card-subtitle">Clásico Klondike</p>
             </div>
-            <div class="card-badge" id="badge-onet">▶</div>
+            <div class="card-badge" id="badge-solitaire">▶</div>
           </div>
           <div class="card-meta">
-            <span class="card-best" id="best-onet">⭐ 0</span>
-            <span class="card-tag">Puzzle Espacial</span>
+            <span class="card-best" id="best-solitaire">⭐ 0</span>
+            <span class="card-tag">Paciencia y Lógica</span>
           </div>
         </button>
       </div>
@@ -144,15 +146,13 @@
           <span class="topbar-label" id="mg-phase-display">Fase 1</span>
           <span class="topbar-score" id="mg-score">0</span>
         </div>
+        <div class="topbar-lives-wrap">
+          <span class="topbar-lives-icon">🌟</span>
+          <span class="topbar-lives-count" id="mg-lives-count">0</span>
+        </div>
       </div>
       <div class="topbar-right">
         <button class="icon-btn" id="mg-how-to-btn" aria-label="Cómo jugar">❓</button>
-        <button class="icon-btn" id="mg-hint-btn" aria-label="Pista">
-          💡 <span class="resource-badge" id="mg-hints-count">5</span>
-        </button>
-        <button class="icon-btn" id="mg-add-btn" aria-label="Añadir números">
-          ➕ <span class="resource-badge" id="mg-adds-count">5</span>
-        </button>
       </div>
     </div>
 
@@ -161,15 +161,13 @@
     </div>
 
     <div class="mg-bottom-bar">
-      <div class="info-pill">
-        <span>Parejas</span>
-        <span id="mg-pairs">0</span>
-      </div>
+      <button class="icon-btn" id="mg-hint-btn" aria-label="Pista">
+        💡 <span class="resource-badge" id="mg-hints-count">5</span>
+      </button>
       <button class="btn-primary" id="mg-new-game-btn">Nueva partida</button>
-      <div class="info-pill">
-        <span>Vacías</span>
-        <span id="mg-empty">0</span>
-      </div>
+      <button class="icon-btn" id="mg-add-btn" aria-label="Añadir números">
+        ➕ <span class="resource-badge" id="mg-adds-count">5</span>
+      </button>
     </div>
 
     <!-- Score popup -->
@@ -186,6 +184,7 @@
         <div class="topbar-score-wrap">
           <span class="topbar-label" id="mj-lives">❤️❤️❤️</span>
           <span class="topbar-score" id="mj-score">0</span>
+          <span class="topbar-label" style="opacity:1;">| NIVEL <span id="mj-level">1</span></span>
         </div>
         <div class="timer-pill" id="mj-timer-display">⏱ 00:00</div>
       </div>
@@ -193,7 +192,6 @@
         <button class="icon-btn" id="mj-how-to-btn" aria-label="Cómo jugar Mahjong">❓</button>
         <button class="icon-btn" id="mj-hint-btn" aria-label="Pista">💡</button>
         <button class="icon-btn" id="mj-reshuffle-btn" aria-label="Barajar">🔄</button>
-        <button class="icon-btn" id="mj-new-btn" aria-label="Nueva partida Mahjong">✨</button>
       </div>
     </div>
 
@@ -205,27 +203,45 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════ BLOCK DELUXE SCREEN ═══════════════════════ -->
-  <div id="onet-screen" class="screen" role="main" aria-label="Juego Block Deluxe">
+  <!-- ═══════════════════════ SOLITAIRE SCREEN ═══════════════════════ -->
+  <div id="solitaire-game-screen" class="screen" role="main" aria-label="Juego Solitario">
     <div class="game-topbar">
-      <button class="icon-btn back-btn" id="onet-back" aria-label="Volver al menú">‹</button>
+      <button class="icon-btn back-btn" id="solitaire-back" aria-label="Volver al menú">‹</button>
       <div class="topbar-center">
         <div class="topbar-score-wrap">
-          <span class="topbar-label">Puntos</span>
-          <span class="topbar-score" id="onet-score">0</span>
+          <span class="topbar-score" id="solitaire-score">0</span>
+          <span class="topbar-label" id="solitaire-timer">00:00</span>
         </div>
       </div>
       <div class="topbar-right">
-        <button class="icon-btn" id="onet-how-to-btn-game" aria-label="Cómo jugar">❓</button>
-        <button class="icon-btn" id="onet-new-btn" aria-label="Nueva partida">✨</button>
+        <button class="icon-btn" id="solitaire-how-to-btn" aria-label="Cómo jugar">❓</button>
+        <button class="icon-btn" id="solitaire-undo-btn" aria-label="Deshacer">↩</button>
+        <button class="icon-btn" id="solitaire-new-btn" aria-label="Nueva partida">✨</button>
       </div>
     </div>
 
-    <div class="block-game-body">
-      <div id="block-board" class="block-board" role="grid" aria-label="Tablero de Bloques"></div>
+    <div class="solitaire-game-body">
+      <div class="solitaire-top-row">
+        <div class="solitaire-deck-area">
+          <div id="solitaire-stock" class="card-slot deck"></div>
+          <div id="solitaire-waste" class="card-slot waste"></div>
+        </div>
+        <div class="solitaire-foundations">
+          <div class="card-slot foundation" data-suit="♥" id="foundation-h"></div>
+          <div class="card-slot foundation" data-suit="♦" id="foundation-d"></div>
+          <div class="card-slot foundation" data-suit="♣" id="foundation-c"></div>
+          <div class="card-slot foundation" data-suit="♠" id="foundation-s"></div>
+        </div>
+      </div>
       
-      <div class="block-tray-wrap">
-        <div id="block-pieces" class="block-pieces" aria-label="Piezas disponibles"></div>
+      <div class="solitaire-tableau" id="solitaire-tableau">
+        <div class="tableau-col" id="tableau-0"></div>
+        <div class="tableau-col" id="tableau-1"></div>
+        <div class="tableau-col" id="tableau-2"></div>
+        <div class="tableau-col" id="tableau-3"></div>
+        <div class="tableau-col" id="tableau-4"></div>
+        <div class="tableau-col" id="tableau-5"></div>
+        <div class="tableau-col" id="tableau-6"></div>
       </div>
     </div>
   </div>
@@ -242,6 +258,7 @@
         <button class="tab-btn active" data-tab="global" id="tab-global">Global</button>
         <button class="tab-btn" data-tab="daily" id="tab-daily">Hoy</button>
       </div>
+      <div id="ranking-podium" class="ranking-podium"></div>
       <div id="ranking-list" class="ranking-list" role="list"></div>
     </div>
   </div>
@@ -307,6 +324,7 @@
       <p class="gameover-score">Puntuación: <strong id="gameover-score-val">0</strong></p>
       <p class="gameover-best" id="gameover-best-wrap">Nuevo récord: <strong id="gameover-best-val">0</strong> ⭐</p>
       <div class="modal-actions">
+        <button class="btn-primary" id="gameover-continue" style="display:none; background: var(--gold-gradient); color: var(--midnight); font-weight: 700;">🌟 Usar Vida (1)</button>
         <button class="btn-primary" id="gameover-replay">Jugar de nuevo</button>
         <button class="btn-secondary" id="gameover-home">Inicio</button>
       </div>
@@ -329,9 +347,10 @@
           <span class="option-emoji">🀄</span>
           <span class="option-name">Mahjong</span>
         </button>
-        <button class="life-option-btn card-glow-orange" data-game="onet">
-          <span class="option-emoji">🦋</span>
-          <span class="option-name">Onet</span>
+
+        <button class="life-option-btn card-glow-gold" data-game="st">
+          <span class="option-emoji">🃏</span>
+          <span class="option-name">Solitario</span>
         </button>
       </div>
     </div>
