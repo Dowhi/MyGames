@@ -3,7 +3,7 @@
 //  Cache-first strategy with versioned cache busting
 // ═══════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'mygames-v1.2.0';
+const CACHE_NAME = 'mygames-v1.7.1';
 
 const PRECACHE_URLS = [
   './',
@@ -12,16 +12,15 @@ const PRECACHE_URLS = [
   './script.js',
   './mygames.js',
   './mahjong.js',
-  './onet.js',
+  './solitaire.js',
   './manifest.json',
-  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap',
 ];
 
 // Install: pre-cache core assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(PRECACHE_URLS).catch(() => {}))
+      .then(cache => cache.addAll(PRECACHE_URLS).catch(err => console.warn('Pre-cache error:', err)))
       .then(() => self.skipWaiting())
   );
 });
@@ -49,9 +48,13 @@ self.addEventListener('fetch', (event) => {
             caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           }
           return response;
-        }).catch(() => {
-          // Return offline fallback for navigation
-          if (event.request.mode === 'navigate') return caches.match('./index.html');
+        }).catch(err => {
+          // If navigation fails, use cached index.html
+          if (event.request.mode === 'navigate') {
+             return caches.match('./index.html');
+          }
+          // For other requests, just throw so browser shows error (or we could return a placeholder)
+          throw err;
         });
       })
   );
