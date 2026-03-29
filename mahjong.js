@@ -143,8 +143,8 @@ export class MahjongGame {
     const parent = this.boardEl.parentElement;
     if (parent) {
       const availW = parent.clientWidth - 20;
-      const availH = parent.clientHeight - 64; // Smaller buffer for smaller tray
-      const scale = Math.min(1.1, availW / boardActualW, availH / (boardActualH || 1));
+      const availH = parent.clientHeight - 85; // Stronger buffer to prevent overlap
+      const scale = Math.min(1.0, availW / boardActualW, availH / (boardActualH || 1));
       this.boardEl.style.transform = `scale(${scale})`;
       this.boardEl.style.transformOrigin = 'center top';
     }
