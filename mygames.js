@@ -19,6 +19,7 @@ export class MyGamesGame {
     this.phaseDisplay = document.getElementById('mg-phase-display');
     this.hintsCountEl = document.getElementById('mg-hints-count');
     this.addsCountEl  = document.getElementById('mg-adds-count');
+    this.livesCountEl = document.getElementById('mg-lives-count');
     
     this.hintBtn      = document.getElementById('mg-hint-btn');
     this.addBtn       = document.getElementById('mg-add-btn');
@@ -134,6 +135,9 @@ export class MyGamesGame {
     if (this.phaseDisplay) this.phaseDisplay.textContent = `Fase ${this.phase}`;
     if (this.hintsCountEl) this.hintsCountEl.textContent = this.hintsLeft;
     if (this.addsCountEl)  this.addsCountEl.textContent  = this.addsLeft;
+    
+    const lives = Storage.getClassicBonusLives();
+    if (this.livesCountEl) this.livesCountEl.textContent = lives;
     
     // Bottom bar counters: Parejas and Vacías (cleared cells)
     if (this.pairsEl) this.pairsEl.textContent = this.pairs;
@@ -317,14 +321,10 @@ export class MyGamesGame {
   }
 
   advancePhase() {
-      // Reward Life Picker every 2 phases
+      // Reward 1 Life every 2 phase completions
       if (this.phase % 2 === 0) {
-          import('./script.js').then(m => {
-              m.showLifePicker(1);
-              this.showSpecialMsg('🎁 ¡HAS GANADO UNA VIDA!');
-          });
-      } else {
-          this.showSpecialMsg(`FASE ${this.phase} COMPLETADA`);
+          Storage.addClassicBonusLives(1);
+          this.showSpecialMsg('🎁 ¡HAS GANADO UNA VIDA!');
       }
       
       this.phase++;
@@ -444,7 +444,21 @@ export class MyGamesGame {
 
   onLose() {
       playSound('error');
-      showGameOver({ score: this.score, game: 'mg', won: false, onReplay: () => this.start(true) });
+      showGameOver({ 
+        score: this.score, 
+        game: 'mg', 
+        won: false, 
+        extra: this.phase,
+        onReplay: () => this.start(true),
+        onContinue: () => {
+          // Grant +1 Add Number and +1 Hint when using a life
+          this.addsLeft  += 1;
+          this.hintsLeft += 1;
+          this.updateInfo();
+          playSound('special');
+          this.showSpecialMsg('❤️ ¡VIDA USADA! +1 CARGA');
+        }
+      });
   }
 
   // ─── Achievements ────────────────────────────────────────────
@@ -461,7 +475,13 @@ export class MyGamesGame {
     Storage.updateStats('mg', true, this.pairs);
     checkAndUnlock('mg_win');
     if (!this.hintUsed) checkAndUnlock('no_hint');
-    showGameOver({ score: this.score, game: 'mg', won: true, onReplay: () => this.start(true) });
+    showGameOver({
+      score: this.score,
+      game: 'mg',
+      won: true,
+      extra: this.phase,
+      onReplay: () => this.start(true)
+    });
   }
 
   // ─── Bind ────────────────────────────────────────────────────

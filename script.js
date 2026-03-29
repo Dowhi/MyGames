@@ -4,7 +4,7 @@
 
 import { MyGamesGame }     from './mygames.js';
 import { MahjongGame }      from './mahjong.js';
-import { BlockDeluxeGame }  from './onet.js';
+import { SolitaireGame }    from './solitaire.js';
 
 // ─── Service Worker Registration ────────────────────────────────
 if ('serviceWorker' in navigator) {
@@ -31,12 +31,12 @@ export const Storage = {
   getPlayerName()  { return LS.get('playerName', 'Jugador'); },
   setPlayerName(n) { LS.set('playerName', n); },
 
-  // High Scores: { global: [...{name,score,game,date}], daily: [...] }
+  // High Scores: { global: [...{name,score,game,date,extra}], daily: [...] }
   getHighScores()  { return LS.get('highScores', { global: [], daily: [] }); },
-  addScore(name, score, game) {
+  addScore(name, score, game, extra = null) {
     const hs = this.getHighScores();
     const today = new Date().toDateString();
-    const entry = { name, score, game, date: new Date().toISOString() };
+    const entry = { name, score, game, date: new Date().toISOString(), extra };
     hs.global.push(entry);
     hs.global.sort((a, b) => b.score - a.score);
     if (hs.global.length > 50) hs.global = hs.global.slice(0, 50);
@@ -61,7 +61,7 @@ export const Storage = {
     return LS.get('stats', {
       mg: { wins: 0, losses: 0, pairs: 0 },
       mj: { wins: 0, losses: 0, pairs: 0 },
-      onet: { wins: 0, losses: 0, pairs: 0 },
+      st: { wins: 0, losses: 0, pairs: 0 },
       totalGames: 0
     });
   },
@@ -97,23 +97,51 @@ export const Storage = {
   // Mahjong Bonus Lives (from MyGames Classic)
   getMahjongBonusLives()    { return LS.get('mj_bonus_lives', 0); },
   addMahjongBonusLives(n)   { LS.set('mj_bonus_lives', this.getMahjongBonusLives() + n); },
-  consumeMahjongBonusLives() { LS.set('mj_bonus_lives', 0); },
+  consumeMahjongBonusLives() {
+    const curr = this.getMahjongBonusLives();
+    if (curr > 0) LS.set('mj_bonus_lives', curr - 1);
+    return curr > 0;
+  },
 
   // Classic Bonus Lives
   getClassicBonusLives()    { return LS.get('classic_bonus_lives', 0); },
   addClassicBonusLives(n)   { LS.set('classic_bonus_lives', this.getClassicBonusLives() + n); },
-  consumeClassicBonusLives() { LS.set('classic_bonus_lives', 0); },
+  consumeClassicBonusLives() {
+    const curr = this.getClassicBonusLives();
+    if (curr > 0) LS.set('classic_bonus_lives', curr - 1);
+    return curr > 0;
+  },
+  useClassicBonusLive() { return this.consumeClassicBonusLives(); },
 
-  // Onet Bonus Lives
-  getOnetBonusLives()       { return LS.get('onet_bonus_lives', 0); },
-  addOnetBonusLives(n)      { LS.set('onet_bonus_lives', this.getOnetBonusLives() + n); },
-  consumeOnetBonusLives()   { LS.set('onet_bonus_lives', 0); },
+  // Solitaire Bonus Lives
+  getSolitaireBonusLives()      { return LS.get('st_bonus_lives', 0); },
+  addSolitaireBonusLives(n)     { LS.set('st_bonus_lives', this.getSolitaireBonusLives() + n); },
+  consumeSolitaireBonusLives() {
+    const curr = this.getSolitaireBonusLives();
+    if (curr > 0) LS.set('st_bonus_lives', curr - 1);
+    return curr > 0;
+  },
 
   // Generic helper for all games
   addBonusLives(game, n) {
     if (game === 'mg') this.addClassicBonusLives(n);
-    else if (game === 'mj') this.addMahjongBonusLives(n);
-    else if (game === 'onet') this.addOnetBonusLives(n);
+    else if (game === 'mj' || game === 'mahjong') this.addMahjongBonusLives(n);
+    else if (game === 'st') this.addSolitaireBonusLives(n);
+    refreshHome();
+  },
+
+  getLives(game) {
+    if (game === 'mg') return this.getClassicBonusLives();
+    if (game === 'mj' || game === 'mahjong') return this.getMahjongBonusLives();
+    if (game === 'st') return this.getSolitaireBonusLives();
+    return 0;
+  },
+
+  useBonusLive(game) {
+    if (game === 'mg') return this.consumeClassicBonusLives();
+    if (game === 'mj' || game === 'mahjong') return this.consumeMahjongBonusLives();
+    if (game === 'st') return this.consumeSolitaireBonusLives();
+    return false;
   }
 };
 
@@ -127,7 +155,7 @@ export const ACHIEVEMENTS = [
   { id: 'score_1000',   icon: '🏆', name: 'Campeón',            desc: 'Alcanza 1000 puntos' },
   { id: 'mg_win',       icon: '🔢', name: 'Tablero Limpio',     desc: 'Gana en MyGames Classic' },
   { id: 'mj_win',       icon: '🀄', name: 'Maestro Mahjong',    desc: 'Completa Mahjong' },
-  { id: 'onet_win',     icon: '🦋', name: 'Conector Fauna',     desc: 'Completa Onet' },
+  { id: 'st_win',       icon: '🃏', name: 'Rey del Solitario', desc: 'Gana en el Solitario' },
   { id: 'multi_game',   icon: '🎮', name: 'Multijugador',       desc: 'Juega los 3 juegos' },
   { id: 'speed_match',  icon: '⚡', name: 'Rayo',               desc: 'Haz una pareja en <2s' },
   { id: 'no_hint',      icon: '🧠', name: 'Sin Pistas',         desc: 'Gana sin usar pistas' },
@@ -165,13 +193,14 @@ const TUTORIALS = {
       <div class="tutorial-step"><span class="step-icon">⚠️</span><div><strong>Estrategia:</strong> Si la bandeja se llena sin formar parejas, la partida termina. ¡Planifica tus movimientos!</div></div>
     `
   },
-  onet: {
-    title: '💎 Block Deluxe',
+  st: {
+    title: '🃏 Solitario',
     html: `
-      <div class="tutorial-step"><span class="step-icon">🎯</span><div><strong>Objetivo:</strong> Colocar piezas en el tablero para completar filas y columnas.</div></div>
-      <div class="tutorial-step"><span class="step-icon">🧩</span><div><strong>Piezas:</strong> Arrastra una de las 3 piezas inferiores al tablero de 10x10.</div></div>
-      <div class="tutorial-step"><span class="step-icon">💥</span><div><strong>Eliminar:</strong> Cuando completas una <strong>fila horizontal</strong> o <strong>columna vertical</strong> entera, esta desaparece.</div></div>
-      <div class="tutorial-step"><span class="step-icon">⚠️</span><div><strong>Fin de Juego:</strong> La partida termina si no hay espacio para ninguna de las piezas actuales. ¡Piensa con antelación!</div></div>
+      <div class="tutorial-step"><span class="step-icon">🎯</span><div><strong>Objetivo:</strong> Mover todas las cartas a las 4 fundaciones (arriba a la derecha) por palo y en orden (A-K).</div></div>
+      <div class="tutorial-step"><span class="step-icon">📋</span><div><strong>El Tablero:</strong> Puedes mover cartas entre columnas alternando colores y en orden descendente (ej: 9 Rojo sobre 10 Negro).</div></div>
+      <div class="tutorial-step"><span class="step-icon">📦</span><div><strong>Pilas:</strong> Puedes mover grupos de cartas si están en el orden correcto.</div></div>
+      <div class="tutorial-step"><span class="step-icon">🎴</span><div><strong>El Mazo:</strong> Si no hay movimientos, extrae cartas del mazo.</div></div>
+      <div class="tutorial-step"><span class="step-icon">👑</span><div><strong>Reyes:</strong> Solo los Reyes pueden ocupar una columna vacía.</div></div>
     `
   }
 };
@@ -191,6 +220,9 @@ let currentScreen = 'home-screen';
 let activeGames = {};
 
 export function navigateTo(screenId, opts = {}) {
+  // Clear any flying cards from Solitaire celebration
+  document.querySelectorAll('.flying-card').forEach(el => el.remove());
+
   if (screenId === currentScreen) return;
   const prev = document.getElementById(currentScreen);
   const next = document.getElementById(screenId);
@@ -474,9 +506,9 @@ function showAchievementToast(def) {
 //  GAME OVER MODAL
 // ═══════════════════════════════════════════════════════════════
 export function showGameOver(opts) {
-  const { score, game, won, onReplay, onHome } = opts;
+  const { score, game, won, onReplay, onHome, onContinue, extra } = opts;
   const prevBest = Storage.getBestScore(game);
-  Storage.addScore(Storage.getPlayerName(), score, game);
+  Storage.addScore(Storage.getPlayerName(), score, game, extra);
   const newBest = Storage.getBestScore(game);
 
   document.getElementById('gameover-emoji').textContent    = won ? '🎉' : '😔';
@@ -498,8 +530,31 @@ export function showGameOver(opts) {
   const nh = homeBtn.cloneNode(true);
   replayBtn.replaceWith(nr);
   homeBtn.replaceWith(nh);
-  nr.addEventListener('click', () => { modal.hidden = true; onReplay?.(); });
-  nh.addEventListener('click', () => { modal.hidden = true; goHome(); });
+
+  // CONTINUE WITH LIFE
+  const continueBtn = document.getElementById('gameover-continue');
+  if (continueBtn) {
+    const lives = Storage.getLives(game);
+    if (!won && lives > 0 && onContinue) {
+      continueBtn.style.display = 'block';
+      continueBtn.innerHTML = `🌟 Usar Vida (${lives})`;
+      
+      const nc = continueBtn.cloneNode(true);
+      continueBtn.replaceWith(nc);
+      nc.onclick = () => {
+        if (Storage.useBonusLive(game)) {
+          modal.hidden = true;
+          onContinue();
+          playSound('special');
+        }
+      };
+    } else {
+      continueBtn.style.display = 'none';
+    }
+  }
+
+  nr.onclick = () => { modal.hidden = true; onReplay?.(); };
+  nh.onclick = () => { modal.hidden = true; goHome(); };
 
   if (won) {
     playSound('win');
@@ -545,7 +600,8 @@ export function showLifePicker(amount, callback) {
 // ═══════════════════════════════════════════════════════════════
 function refreshHome() {
   // Player name
-  document.getElementById('player-name-display').textContent = Storage.getPlayerName();
+  const pnd = document.getElementById('player-name-display');
+  if (pnd) pnd.textContent = Storage.getPlayerName();
 
   // Scores
   const today = new Date().toDateString();
@@ -555,14 +611,15 @@ function refreshHome() {
   const dailyBest = daily.length ? daily[0].score : 0;
   const stats = Storage.getStats();
 
-  document.getElementById('home-best-score').textContent  = best;
-  document.getElementById('home-daily-score').textContent = dailyBest;
-  document.getElementById('home-total-games').textContent = stats.totalGames;
+  const hb = document.getElementById('home-best-score'); if(hb) hb.textContent  = best;
+  const hd = document.getElementById('home-daily-score'); if(hd) hd.textContent = dailyBest;
+  const ht = document.getElementById('home-total-games'); if(ht) ht.textContent = stats.totalGames;
 
-  // Per-game best
-  document.getElementById('best-mygames').textContent = '⭐ ' + Storage.getBestScore('mg');
-  document.getElementById('best-mahjong').textContent = '⭐ ' + Storage.getBestScore('mj');
-  document.getElementById('best-onet').textContent    = '⭐ ' + Storage.getBestScore('onet');
+  const bmg = document.getElementById('best-mygames'); if(bmg) bmg.textContent = '⭐ ' + Storage.getBestScore('mg');
+  const bmj = document.getElementById('best-mahjong'); if(bmj) bmj.textContent = '⭐ ' + Storage.getBestScore('mj');
+  const bst = document.getElementById('best-solitaire'); if(bst) bst.textContent = '⭐ ' + Storage.getBestScore('st');
+  const chainBest = document.getElementById('best-chain');
+  if (chainBest) chainBest.textContent = '⭐ ' + Storage.getBestScore('chain');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -586,34 +643,95 @@ function renderAchievements() {
 function renderRanking(tab = 'global') {
   const hs    = Storage.getHighScores();
   const today = new Date().toDateString();
-  let list    = tab === 'global'
+  let allList = tab === 'global'
     ? hs.global
     : hs.global.filter(e => new Date(e.date).toDateString() === today);
-  list = list.slice(0, 10);
+  
+  // Sort by score desc
+  allList.sort((a,b) => b.score - a.score);
+  
+  const podiumList = allList.slice(0, 3);
+  const scrollList = allList.slice(3, 15);
 
-  const container = document.getElementById('ranking-list');
-  container.innerHTML = '';
-  if (!list.length) {
-    container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:2rem">Sin puntuaciones aún</p>';
+  const podiumContainer = document.getElementById('ranking-podium');
+  const listContainer   = document.getElementById('ranking-list');
+  
+  podiumContainer.innerHTML = '';
+  listContainer.innerHTML   = '';
+
+  if (!allList.length) {
+    listContainer.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:2rem">Sin puntuaciones aún</p>';
+    podiumContainer.style.display = 'none';
     return;
   }
+  podiumContainer.style.display = 'flex';
 
-  const medals = ['🥇','🥈','🥉'];
-  const topScore = list[0]?.score || 1;
-  list.forEach((e, i) => {
+  const gameIcons = { 'mg': '🔢', 'mj': '🀄', 'st': '🃏' };
+
+  // Render Podium (Order: 2, 1, 3 for visual balance)
+  const renderPodiumSpot = (entry, rank) => {
+    if (!entry) return `<div class="podium-spot rank-${rank}" style="visibility:hidden"></div>`;
+    
+    const icons = { 1: '👑', 2: '🥈', 3: '🥉' };
+    const avatars = ['👤', '👤', '👤'];
+    const gameIcon = gameIcons[entry.game] || '🎮';
+    const dateStr = entry.date ? new Date(entry.date).toLocaleDateString('es-ES', { day:'2-digit', month:'short' }) : '';
+    
+    let extraLabel = '';
+    if (entry.extra) {
+      const type = entry.game === 'mg' ? 'Fase' : (entry.game === 'mj' ? 'Nivel' : '');
+      if (type) extraLabel = `<div style="font-size:0.6rem;opacity:0.8">${type} ${entry.extra}</div>`;
+    }
+
+    return `
+      <div class="podium-spot rank-${rank}">
+        <div class="crown-icon">${icons[rank]}</div>
+        ${rank === 1 ? '<div class="star-decoration" style="top:0;left:-20px">✨</div><div class="star-decoration" style="top:10px;right:-15px">✨</div>' : ''}
+        <div class="podium-avatar">
+          ${avatars[rank-1]}
+          <span style="position:absolute;bottom:0;right:0;font-size:0.8rem;background:var(--bg-main);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center">${gameIcon}</span>
+        </div>
+        <div class="podium-base">
+          <div class="podium-score">${entry.score}</div>
+          ${extraLabel}
+        </div>
+        <div class="podium-name">${entry.name}</div>
+        <div style="font-size:0.6rem;opacity:0.5;margin-top:2px">${dateStr}</div>
+      </div>
+    `;
+  };
+
+  podiumContainer.innerHTML = `
+    ${renderPodiumSpot(podiumList[1], 2)}
+    ${renderPodiumSpot(podiumList[0], 1)}
+    ${renderPodiumSpot(podiumList[2], 3)}
+  `;
+
+  // Render Rest of the List
+  scrollList.forEach((e, i) => {
+    const realRank = i + 4;
     const entry = document.createElement('div');
     entry.className = 'ranking-entry';
-    entry.style.animationDelay = (i * 0.07) + 's';
-    const pct = Math.round((e.score / topScore) * 100);
+    entry.style.animationDelay = (i * 0.05) + 's';
+    
+    const icon = gameIcons[e.game] || '🎮';
+    const dateStr = e.date ? new Date(e.date).toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit' }) : '';
+    
+    let extraInfo = '';
+    if (e.extra) {
+      const type = e.game === 'mg' ? 'Fase' : (e.game === 'mj' ? 'Nivel' : '');
+      if (type) extraInfo = `<span style="font-size:0.7rem;opacity:0.7;margin-left:5px">[${type} ${e.extra}]</span>`;
+    }
+
     entry.innerHTML = `
-      <div class="rank-pos">${medals[i] || (i+1)}</div>
-      <div style="flex:1">
-        <div class="rank-name">${e.name} <small style="color:var(--text-muted);font-size:0.7rem">[${e.game?.toUpperCase()}]</small></div>
-        <div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}%"></div></div>
+      <div class="rank-pos">${realRank}</div>
+      <div class="rank-name">
+        <div>${e.name} <span style="opacity:0.6;font-size:0.8rem">${icon}</span> ${extraInfo}</div>
+        <div style="font-size:0.65rem;opacity:0.4">${dateStr}</div>
       </div>
       <div class="rank-score">${e.score}</div>
     `;
-    container.appendChild(entry);
+    listContainer.appendChild(entry);
   });
 }
 
@@ -623,23 +741,56 @@ function renderRanking(tab = 'global') {
 function renderStats() {
   const s = Storage.getStats();
   const body = document.getElementById('stats-body');
-  const items = [
-    { icon: '🎮', label: 'Total Partidas', val: s.totalGames },
-    { icon: '🔢', label: 'MG Victorias',   val: s.mg?.wins || 0 },
-    { icon: '🀄', label: 'MJ Victorias',   val: s.mj?.wins || 0 },
-    { icon: '💎', label: 'Block Victorias', val: s.onet?.wins || 0 },
-    { icon: '💔', label: 'Derrotas Totales', val: (s.mg?.losses || 0) + (s.mj?.losses || 0) + (s.onet?.losses || 0) },
-    { icon: '🔗', label: 'Parejas Totales', val: (s.mg?.pairs || 0) + (s.mj?.pairs || 0) + (s.onet?.pairs || 0) },
-    { icon: '⭐', label: 'Mejor Puntuación', val: Storage.getBestScore('mg') },
-    { icon: '🏅', label: 'Logros', val: Object.keys(Storage.getAchievements()).length + '/' + ACHIEVEMENTS.length },
-  ];
-  body.innerHTML = items.map(it => `
-    <div class="stat-card">
-      <div class="stat-icon">${it.icon}</div>
-      <div class="stat-value">${it.val}</div>
-      <div class="stat-label">${it.label}</div>
+  
+  const totalWins = (s.mg?.wins || 0) + (s.mj?.wins || 0) + (s.st?.wins || 0);
+  const totalLosses = (s.mg?.losses || 0) + (s.mj?.losses || 0) + (s.st?.losses || 0);
+  const totalGames = s.totalGames || 0;
+
+  const formatTime = (ms) => {
+    if (!ms || ms === Infinity) return '--:--';
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  };
+
+  const getGameHTML = (id, name, icon, stats) => {
+    const wins = stats?.wins || 0;
+    const losses = stats?.losses || 0;
+    const games = (stats?.totalGames) || (wins + losses);
+    const rate = games > 0 ? Math.round((wins / games) * 100) : 0;
+    const bestScore = Storage.getBestScore(id);
+    const bestTime = stats?.bestTime || null;
+
+    return `
+      <div class="game-stats-section">
+        <div class="game-stats-header">
+          <span>${icon} ${name}</span>
+        </div>
+        <div class="game-stats-grid">
+          <div class="sub-stat"><span class="s-label">Vic.</span><span class="s-val">${wins}</span></div>
+          <div class="sub-stat"><span class="s-label">Derr.</span><span class="s-val">${losses}</span></div>
+          <div class="sub-stat"><span class="s-label">% Vic.</span><span class="s-val">${rate}%</span></div>
+          <div class="sub-stat"><span class="s-label">Part.</span><span class="s-val">${games}</span></div>
+          <div class="sub-stat"><span class="s-label">Récord</span><span class="s-val">${bestScore}</span></div>
+          <div class="sub-stat"><span class="s-label">Tiempo</span><span class="s-val">${formatTime(bestTime)}</span></div>
+        </div>
+      </div>
+    `;
+  };
+
+  body.innerHTML = `
+    <!-- Global -->
+    <div class="stats-global-summary">
+      <div class="mini-stat-card"><span class="m-val">${totalGames}</span><span class="m-label">Partidas</span></div>
+      <div class="mini-stat-card"><span class="m-val">${totalWins}</span><span class="m-label">Victorias</span></div>
+      <div class="mini-stat-card"><span class="m-val">${totalLosses}</span><span class="m-label">Derrotas</span></div>
     </div>
-  `).join('');
+
+    ${getGameHTML('mg', 'Clásico', '🔢', s.mg)}
+    ${getGameHTML('mj', 'Mahjong', '🀄', s.mj)}
+    ${getGameHTML('st', 'Solitario', '🃏', s.st)}
+  `;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -670,17 +821,17 @@ function wireNavigation() {
     activeGames.mj = activeGames.mj || new MahjongGame();
     activeGames.mj.start();
   });
-  document.getElementById('card-onet').addEventListener('click', () => {
-    navigateTo('onet-screen');
-    activeGames.onet = activeGames.onet || new BlockDeluxeGame();
-    activeGames.onet.start();
-    checkAndUnlock('multi_game_onet');
+
+  document.getElementById('card-solitaire').addEventListener('click', () => {
+    navigateTo('solitaire-game-screen');
+    activeGames.st = activeGames.st || new SolitaireGame();
+    activeGames.st.start();
   });
 
   // Back buttons
   document.getElementById('mygames-back').addEventListener('click', goHome);
   document.getElementById('mahjong-back').addEventListener('click', goHome);
-  document.getElementById('onet-back').addEventListener('click', goHome);
+  document.getElementById('solitaire-back').addEventListener('click', goHome);
   document.getElementById('ranking-back').addEventListener('click', goHome);
   document.getElementById('stats-back').addEventListener('click', goHome);
 
@@ -722,18 +873,18 @@ function wireNavigation() {
   });
 
   // How to play buttons
-  const showOnetTutorial = () => showHowTo('onet');
-  const onetBtn1 = document.getElementById('onet-how-to-btn');
-  if (onetBtn1) onetBtn1.addEventListener('click', showOnetTutorial);
   
-  const onetBtn2 = document.getElementById('onet-how-to-btn-game');
-  if (onetBtn2) onetBtn2.addEventListener('click', showOnetTutorial);
-  
+  const solBtnMg = document.getElementById('solitaire-how-to-btn');
+  if (solBtnMg) solBtnMg.addEventListener('click', () => showHowTo('st'));
+
   const mgBtn = document.getElementById('mg-how-to-btn');
   if (mgBtn) mgBtn.addEventListener('click', () => showHowTo('mg'));
   
   const mjBtn = document.getElementById('mj-how-to-btn');
   if (mjBtn) mjBtn.addEventListener('click', () => showHowTo('mj'));
+
+  const chainBtnHT = document.getElementById('chain-how-to-btn');
+  if (chainBtnHT) chainBtnHT.addEventListener('click', () => showHowTo('chain'));
 
   document.getElementById('close-howto-btn').addEventListener('click', () => {
     document.getElementById('howto-modal').hidden = true;
@@ -761,6 +912,7 @@ export function trackGamePlayed(game) {
 //  INIT
 // ═══════════════════════════════════════════════════════════════
 function init() {
+  console.log('--- MYGAMES INIT v1.7.0 ---');
   refreshHome();
   renderAchievements();
   wireNavigation();

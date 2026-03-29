@@ -3,7 +3,7 @@
 //  Cache-first strategy with versioned cache busting
 // ═══════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'mygames-v1.7.1';
+const CACHE_NAME = 'mygames-v1.7.2';
 
 const PRECACHE_URLS = [
   './',
