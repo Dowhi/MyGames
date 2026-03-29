@@ -773,7 +773,8 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between; /* Tray at bottom, board in mid */
+  justify-content: center; /* Bring items together to use the space */
+  gap: 20px; /* Controlled gap instead of wide open space */
   overflow: hidden; /* No scroll per user request */
   padding: 10px var(--gap-md); 
   background: radial-gradient(circle at center, #1a3d34 0%, #0d1f1a 100%);

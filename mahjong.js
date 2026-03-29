@@ -24,8 +24,8 @@ const TILE_SYMBOLS = [
   { id: 'walnut',    img: 'assets/mahjong/food_walnut.png' }
 ];
 
-const TILE_W  = 52; 
-const TILE_H  = 72;
+const TILE_W  = 58; 
+const TILE_H  = 80;
 const GAP     = 1;
 const COLS    = 6;
 const ROWS_PER_LAYER = 7;
@@ -143,8 +143,8 @@ export class MahjongGame {
     const parent = this.boardEl.parentElement;
     if (parent) {
       const availW = parent.clientWidth - 20;
-      const availH = parent.clientHeight - 80; // Buffer for tray
-      const scale = Math.min(1, availW / boardActualW, availH / (boardActualH || 1));
+      const availH = parent.clientHeight - 64; // Smaller buffer for smaller tray
+      const scale = Math.min(1.1, availW / boardActualW, availH / (boardActualH || 1));
       this.boardEl.style.transform = `scale(${scale})`;
       this.boardEl.style.transformOrigin = 'center top';
     }
